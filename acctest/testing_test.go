@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package acctest
 
 import (
@@ -15,10 +18,7 @@ func init() {
 
 func TestTest_noEnv(t *testing.T) {
 	// Unset the variable
-	if err := os.Setenv(TestEnvVar, ""); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Setenv(TestEnvVar, "1")
+	t.Setenv(TestEnvVar, "")
 
 	mt := new(mockT)
 	Test(mt, TestCase{})

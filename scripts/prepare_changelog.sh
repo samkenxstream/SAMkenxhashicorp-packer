@@ -1,4 +1,7 @@
 #!/bin/zsh
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 LAST_RELEASE=$1
 DO_PR_CHECK=1
@@ -11,7 +14,7 @@ is_doc_or_tech_debt_pr(){
         echo "jq not found"
         return 1
     fi
-    out=$(cat pull.json | python -m json.tool \
+    out=$(python3 -m json.tool < pull.json  \
     | jq '[.labels[].name == "docs" or .labels[].name == "tech-debt" or .labels[].name == "website"] | any')
     grep -q true <<< $out
     return $?
@@ -49,7 +52,7 @@ get_prs(){
             echo "Skipping PR ${PR_NUM}: labeled as tech debt, docs or website. (waiting a second so we don't get rate-limited...)"
             continue
         fi
-        echo "$(cat pull.json | python -m json.tool | jq -r '.title') - [GH-${PR_NUM}](https://github.com/hashicorp/packer/pull/${PR_NUM})"
+        echo "$(python3 -m json.tool < pull.json | jq -r '.title') - [GH-${PR_NUM}](https://github.com/hashicorp/packer/pull/${PR_NUM})"
     done
 }
 

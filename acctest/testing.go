@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package acctest
 
 import (
@@ -146,8 +149,8 @@ func Test(t TestT, c TestCase) {
 		},
 		Template: tpl,
 	})
-	err = core.Initialize()
-	if err != nil {
+	diags := core.Initialize(packer.InitializeOptions{})
+	if diags.HasErrors() {
 		t.Fatal(fmt.Sprintf("Failed to init core: %s", err))
 		return
 	}

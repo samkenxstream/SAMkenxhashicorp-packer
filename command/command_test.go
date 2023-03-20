@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -20,13 +23,6 @@ func fatalCommand(t *testing.T, m Meta) {
 		"Bad exit code.\n\nStdout:\n\n%s\n\nStderr:\n\n%s",
 		out.String(),
 		err.String())
-}
-
-func outputCommand(t *testing.T, m Meta) (string, string) {
-	ui := m.Ui.(*packersdk.BasicUi)
-	out := ui.Writer.(*bytes.Buffer)
-	err := ui.ErrorWriter.(*bytes.Buffer)
-	return out.String(), err.String()
 }
 
 func testFixtureContent(n ...string) string {

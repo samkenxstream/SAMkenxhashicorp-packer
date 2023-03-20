@@ -57,7 +57,7 @@ install-gen-deps: ## Install dependencies for code generation
 
 install-lint-deps: ## Install linter dependencies
 	@echo "==> Updating linter dependencies..."
-	@curl -sSfL -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.42.0
+	@curl -sSfL -q https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.46.0
 
 dev: ## Build and install a development build
 	@grep 'const VersionPrerelease = ""' version/version.go > /dev/null ; if [ $$? -eq 0 ]; then \
@@ -196,6 +196,3 @@ vet: ## Vet Go code
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-# This is used for release builds by .github/workflows/build.yml
-version:
-	@$(CURDIR)/scripts/version.sh version/version.go

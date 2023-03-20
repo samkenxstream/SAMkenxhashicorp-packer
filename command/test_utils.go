@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -30,6 +33,14 @@ func TestMetaFile(t *testing.T) Meta {
 			ErrorWriter: &err,
 		},
 	}
+}
+
+// GetStdoutAndErrFromTestMeta extracts stdout/stderr from a Meta created by TestMetaFile
+func GetStdoutAndErrFromTestMeta(t *testing.T, m Meta) (string, string) {
+	ui := m.Ui.(*packersdk.BasicUi)
+	out := ui.Writer.(*bytes.Buffer)
+	err := ui.ErrorWriter.(*bytes.Buffer)
+	return out.String(), err.String()
 }
 
 // testCoreConfigBuilder creates a packer CoreConfig that has a file builder

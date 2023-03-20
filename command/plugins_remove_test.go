@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -175,7 +178,7 @@ func TestPluginsRemoveCommand_Run(t *testing.T) {
 			t.Cleanup(func() {
 				_ = os.RemoveAll(tt.packerConfigDir)
 			})
-			os.Setenv("PACKER_CONFIG_DIR", tt.packerConfigDir)
+			t.Setenv("PACKER_CONFIG_DIR", tt.packerConfigDir)
 			createFiles(tt.packerConfigDir, tt.inPluginFolder)
 
 			hash, err := dirhash.HashDir(tt.packerConfigDir, "", dirhash.DefaultHash)

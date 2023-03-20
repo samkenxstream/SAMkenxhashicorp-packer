@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package packer
 
 import (
@@ -111,11 +114,9 @@ func (b *CoreBuild) Prepare() (warn []string, err error) {
 	// the provisioner prepare() so that the provisioner can appropriately
 	// validate user input against what will become available.
 	generatedPlaceholderMap := BasicPlaceholderData()
-	if generatedVars != nil {
-		for _, k := range generatedVars {
-			generatedPlaceholderMap[k] = fmt.Sprintf("Build_%s. "+
-				packerbuilderdata.PlaceholderMsg, k)
-		}
+	for _, k := range generatedVars {
+		generatedPlaceholderMap[k] = fmt.Sprintf("Build_%s. "+
+			packerbuilderdata.PlaceholderMsg, k)
 	}
 
 	// Prepare the provisioners
@@ -240,7 +241,7 @@ func (b *CoreBuild) Run(ctx context.Context, originalUi packersdk.Ui) ([]packers
 	select {
 	case <-ctx.Done():
 		log.Println("Build was cancelled. Skipping post-processors.")
-		return nil, nil
+		return nil, ctx.Err()
 	default:
 	}
 

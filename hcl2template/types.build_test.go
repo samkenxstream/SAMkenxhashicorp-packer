@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package hcl2template
 
 import (
@@ -73,11 +76,28 @@ func TestParse_build(t *testing.T) {
 			&PackerConfig{
 				CorePackerVersionString: lockedVersion,
 				Basedir:                 filepath.Join("testdata", "build"),
+				Sources: map[SourceRef]SourceBlock{
+					{
+						Type: "null",
+						Name: "test",
+					}: {
+						Type: "null",
+						Name: "test",
+					},
+				},
 				Builds: Builds{
 					&BuildBlock{
 						ProvisionerBlocks: []*ProvisionerBlock{
 							{
 								PType: "nonexistent",
+							},
+						},
+						Sources: []SourceUseBlock{
+							{
+								SourceRef: SourceRef{
+									Type: "null",
+									Name: "test",
+								},
 							},
 						},
 					},
@@ -134,12 +154,29 @@ func TestParse_build(t *testing.T) {
 			&PackerConfig{
 				CorePackerVersionString: lockedVersion,
 				Basedir:                 filepath.Join("testdata", "build"),
+				Sources: map[SourceRef]SourceBlock{
+					{
+						Type: "null",
+						Name: "test",
+					}: {
+						Type: "null",
+						Name: "test",
+					},
+				},
 				Builds: Builds{
 					&BuildBlock{
 						PostProcessorsLists: [][]*PostProcessorBlock{
 							{
 								{
 									PType: "nonexistent",
+								},
+							},
+						},
+						Sources: []SourceUseBlock{
+							{
+								SourceRef: SourceRef{
+									Type: "null",
+									Name: "test",
 								},
 							},
 						},

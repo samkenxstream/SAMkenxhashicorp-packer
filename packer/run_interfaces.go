@@ -1,9 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package packer
 
 import (
-	"github.com/hashicorp/hcl/v2"
+	hcl "github.com/hashicorp/hcl/v2"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
-	packerregistry "github.com/hashicorp/packer/internal/registry"
 	plugingetter "github.com/hashicorp/packer/packer/plugin-getter"
 )
 
@@ -51,14 +53,6 @@ type Handler interface {
 	BuildGetter
 	ConfigFixer
 	ConfigInspector
-	HCPHandler
-}
-
-// The HCPHandler handles Packer things needed for communicating with a HCP Packer Registry.
-type HCPHandler interface {
-	// ConfiguredArtifactMetadataPublisher returns a configured Bucket that can be used to publish
-	// build artifacts to the said image bucket.
-	ConfiguredArtifactMetadataPublisher() (*packerregistry.Bucket, hcl.Diagnostics)
 }
 
 //go:generate enumer -type FixConfigMode

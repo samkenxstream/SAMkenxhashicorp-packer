@@ -1,4 +1,7 @@
 #!/bin/zsh
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 ## This script is to be run before a Packer release in order to update
 ## all vendored plugins to the latest available release.
@@ -14,7 +17,7 @@ declare -a plugins=(
 	"hashicorp/packer-plugin-chef"
 	"hashicorp/packer-plugin-cloudstack"
 	"hashicorp/packer-plugin-converge"
-	"hashicorp/packer-plugin-digitalocean"
+	"digitalocean/packer-plugin-digitalocean"
 	"hashicorp/packer-plugin-docker"
 	"hashicorp/packer-plugin-googlecompute"
 	"hashicorp/packer-plugin-hcloud"
@@ -26,15 +29,12 @@ declare -a plugins=(
 	"hashicorp/packer-plugin-lxd"
 	"hashicorp/packer-plugin-ncloud"
 	"hashicorp/packer-plugin-openstack"
-	"hashicorp/packer-plugin-oracle"
-	"outscale/packer-plugin-outscale"
 	"hashicorp/packer-plugin-oneandone"
 	"hashicorp/packer-plugin-parallels"
 	"hashicorp/packer-plugin-profitbricks"
 	"hashicorp/packer-plugin-proxmox"
 	"hashicorp/packer-plugin-puppet"
 	"hashicorp/packer-plugin-qemu"
-	"scaleway/packer-plugin-scaleway"
 	"hashicorp/packer-plugin-sdk"
 	"hashicorp/packer-plugin-tencentcloud"
 	"hashicorp/packer-plugin-triton"
@@ -65,4 +65,4 @@ do
    sleep 1
 done
 
-go mod tidy -compat=1.17
+go mod tidy -compat=1.18

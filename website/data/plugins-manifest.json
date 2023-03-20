@@ -7,7 +7,7 @@
     "version": "latest"
   },
   {
-    "title": "Alicloud",
+    "title": "Alibaba Cloud",
     "path": "alicloud",
     "repo": "hashicorp/packer-plugin-alicloud",
     "pluginTier": "community",
@@ -18,7 +18,7 @@
     "path": "anka",
     "repo": "veertuinc/packer-plugin-veertu-anka",
     "pluginTier": "community",
-    "source_branch": "master",
+    "sourceBranch": "master",
     "version": "latest"
   },
   {
@@ -50,7 +50,7 @@
     "archived": true
   },
   {
-    "title": "Cloudstack",
+    "title": "CloudStack",
     "path": "cloudstack",
     "repo": "hashicorp/packer-plugin-cloudstack",
     "pluginTier": "community",
@@ -78,6 +78,13 @@
     "repo": "hashicorp/packer-plugin-docker",
     "version": "latest",
     "isHcpPackerReady": true
+  },
+  {
+    "title": "External",
+    "path": "external",
+    "repo": "joomcode/packer-plugin-external",
+    "version": "latest",
+    "sourceBranch": "main"
   },
   {
     "title": "Git",
@@ -109,7 +116,7 @@
     "isHcpPackerReady": false
   },
   {
-    "title": "hcloud",
+    "title": "Hetzner Cloud",
     "path": "hetzner-cloud",
     "repo": "hashicorp/packer-plugin-hcloud",
     "version": "latest",
@@ -181,6 +188,13 @@
     "version": "latest"
   },
   {
+    "title": "Mondoo",
+    "path": "mondoo",
+    "repo": "mondoohq/packer-plugin-mondoo",
+    "pluginTier": "verified",
+    "version": "latest"
+  },
+  {
     "title": "Naver Cloud",
     "path": "ncloud",
     "repo": "hashicorp/packer-plugin-ncloud",
@@ -188,7 +202,15 @@
     "version": "latest"
   },
   {
-    "title": "Openstack",
+    "title": "Nutanix",
+    "path": "nutanix",
+    "repo": "nutanix-cloud-native/packer-plugin-nutanix",
+    "version": "latest",
+    "pluginTier": "verified",
+    "sourceBranch": "main"
+  },
+  {
+    "title": "OpenStack",
     "path": "openstack",
     "repo": "hashicorp/packer-plugin-openstack",
     "pluginTier": "community",
@@ -199,7 +221,8 @@
     "path": "oracle",
     "repo": "hashicorp/packer-plugin-oracle",
     "pluginTier": "community",
-    "version": "latest"
+    "version": "latest",
+    "isHcpPackerReady": true
   },
   {
     "title": "Outscale",
@@ -265,6 +288,13 @@
     "version": "v1.0.1"
   },
   {
+    "title": "Tart",
+    "path": "tart",
+    "repo": "cirruslabs/packer-plugin-tart",
+    "pluginTier": "community",
+    "version": "latest"
+  },
+  {
     "title": "Tencent Cloud",
     "path": "tencentcloud",
     "repo": "hashicorp/packer-plugin-tencentcloud",
@@ -291,7 +321,8 @@
     "repo": "UpCloudLtd/packer-plugin-upcloud",
     "version": "latest",
     "pluginTier": "verified",
-    "sourceBranch": "master"
+    "sourceBranch": "master",
+    "isHcpPackerReady": true
   },
   {
     "title": "Vagrant",
@@ -304,6 +335,13 @@
     "title": "VirtualBox",
     "path": "virtualbox",
     "repo": "hashicorp/packer-plugin-virtualbox",
+    "version": "latest"
+  },
+  {
+    "title": "Volcengine",
+    "path": "volcengine",
+    "repo": "volcengine/packer-plugin-volcengine",
+    "pluginTier": "community",
     "version": "latest"
   },
   {

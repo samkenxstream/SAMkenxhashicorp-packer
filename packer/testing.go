@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package packer
 
 import (
@@ -25,7 +28,7 @@ func TestCoreConfig(t *testing.T) *CoreConfig {
 
 func TestCore(t *testing.T, c *CoreConfig) *Core {
 	core := NewCore(c)
-	err := core.Initialize()
+	err := core.Initialize(InitializeOptions{})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package hcl2template
 
 import (
@@ -6,8 +9,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	packerregistry "github.com/hashicorp/packer/internal/registry"
-	"github.com/hashicorp/packer/internal/registry/env"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -89,22 +90,26 @@ type Builds []*BuildBlock
 // decodeBuildConfig is called when a 'build' block has been detected. It will
 // load the references to the contents of the build block.
 func (p *Parser) decodeBuildConfig(block *hcl.Block, cfg *PackerConfig) (*BuildBlock, hcl.Diagnostics) {
-	build := &BuildBlock{}
-	body := block.Body
-
 	var b struct {
 		Name        string   `hcl:"name,optional"`
 		Description string   `hcl:"description,optional"`
 		FromSources []string `hcl:"sources,optional"`
 		Config      hcl.Body `hcl:",remain"`
 	}
+
+	body := block.Body
 	diags := gohcl.DecodeBody(body, cfg.EvalContext(LocalContext, nil), &b)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
+	build := &BuildBlock{
+		HCL2Ref: newHCL2Ref(block, b.Config),
+	}
+
 	build.Name = b.Name
 	build.Description = b.Description
+	build.HCL2Ref.DefRange = block.DefRange
 
 	// Expose build.name during parsing of pps and provisioners
 	ectx := cfg.EvalContext(BuildContext, nil)
@@ -112,7 +117,16 @@ func (p *Parser) decodeBuildConfig(block *hcl.Block, cfg *PackerConfig) (*BuildB
 		"name": cty.StringVal(b.Name),
 	})
 
+	// We rely on `hadSource` to determine which error to proc.
+	//
+	// If a source block is referenced in the build block, but isn't valid, we
+	// cannot rely on the `build.Sources' since it's only populated when a valid
+	// source is processed.
+	hadSource := false
+
 	for _, buildFrom := range b.FromSources {
+		hadSource = true
+
 		ref := sourceRefFromString(buildFrom)
 
 		if ref == NoSource ||
@@ -158,6 +172,7 @@ func (p *Parser) decodeBuildConfig(block *hcl.Block, cfg *PackerConfig) (*BuildB
 			}
 			build.HCPPackerRegistry = hcpPackerRegistry
 		case sourceLabel:
+			hadSource = true
 			ref, moreDiags := p.decodeBuildSource(block)
 			diags = append(diags, moreDiags...)
 			if moreDiags.HasErrors() {
@@ -218,69 +233,13 @@ func (p *Parser) decodeBuildConfig(block *hcl.Block, cfg *PackerConfig) (*BuildB
 		}
 	}
 
-	// Creates a bucket if either a hcp_packer_registry block is set or the HCP
-	// Packer registry is enabled via environment variable
-	if build.HCPPackerRegistry != nil || env.IsPAREnabled() {
-		var err error
-		cfg.bucket, err = packerregistry.NewBucketWithIteration(packerregistry.IterationOptions{
-			TemplateBaseDir: cfg.Basedir,
+	if !hadSource {
+		diags = append(diags, &hcl.Diagnostic{
+			Summary:  "missing source reference",
+			Detail:   "a build block must reference at least one source to be built",
+			Severity: hcl.DiagError,
+			Subject:  block.DefRange.Ptr(),
 		})
-
-		if err != nil {
-			diags = append(diags, &hcl.Diagnostic{
-				Summary:  "Unable to create a valid bucket object for HCP Packer Registry",
-				Detail:   fmt.Sprintf("%s", err),
-				Severity: hcl.DiagError,
-			})
-
-			return build, diags
-		}
-
-		cfg.bucket.LoadDefaultSettingsFromEnv()
-		build.HCPPackerRegistry.WriteToBucketConfig(cfg.bucket)
-
-		// If at this point the bucket.Slug is still empty,
-		// last try is to use the build.Name if present
-		if cfg.bucket.Slug == "" && build.Name != "" {
-			cfg.bucket.Slug = build.Name
-		}
-
-		// If the description is empty, use the one from the build block
-		if cfg.bucket.Description == "" {
-			cfg.bucket.Description = build.Description
-		}
-
-		for _, source := range build.Sources {
-			cfg.bucket.RegisterBuildForComponent(source.String())
-		}
-
-		// Known HCP Packer Image Datasource, whose id is the SourceImageId for some build.
-		const hcpDatasourceType string = "hcp-packer-image"
-		values := ectx.Variables[dataAccessor].AsValueMap()
-
-		dsValues, ok := values[hcpDatasourceType]
-		if !ok {
-			return build, diags
-		}
-
-		for _, value := range dsValues.AsValueMap() {
-			// Only try to check ancestry if we have fetched the
-			// data from HCP for the data source.
-			//
-			// NOTE: this will happen especially during validate as
-			// when we reach this point, we haven't fetched the
-			// data from HCP.
-			//
-			// TODO: maybe move this HCP-related logic outside that
-			// decode block so it's only executed during build?
-			if !value.IsKnown() {
-				continue
-			}
-
-			values := value.AsValueMap()
-			imgID, itID := values["id"], values["iteration_id"]
-			cfg.bucket.SourceImagesToParentIterations[imgID.AsString()] = itID.AsString()
-		}
 	}
 
 	return build, diags

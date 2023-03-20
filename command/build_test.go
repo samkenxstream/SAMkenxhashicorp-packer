@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -6,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -484,6 +488,7 @@ func TestBuild(t *testing.T) {
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
 			defer tt.cleanup(t)
+			t.Logf("Running build on %s", tt.args)
 			run(t, tt.args, tt.expectedCode)
 			tt.fileCheck.verify(t, "")
 		})
@@ -765,7 +770,7 @@ func TestBuildExceptFileCommaFlags(t *testing.T) {
 	}
 }
 
-func testHCLOnlyExceptFlags(t *testing.T, args, present, notPresent []string) {
+func testHCLOnlyExceptFlags(t *testing.T, args, present, notPresent []string, expectReturn int) {
 	c := &BuildCommand{
 		Meta: TestMetaFile(t),
 	}
@@ -776,7 +781,7 @@ func testHCLOnlyExceptFlags(t *testing.T, args, present, notPresent []string) {
 	finalArgs = append(finalArgs, args...)
 	finalArgs = append(finalArgs, testFixture("hcl-only-except"))
 
-	if code := c.Run(finalArgs); code != 0 {
+	if code := c.Run(finalArgs); code != expectReturn {
 		fatalCommand(t, c.Meta)
 	}
 
@@ -797,8 +802,7 @@ func TestHCL2PostProcessorForceFlag(t *testing.T) {
 
 	UUID, _ := uuid.GenerateUUID()
 	// Manifest will only clean with force if the build's PACKER_RUN_UUID are different
-	os.Setenv("PACKER_RUN_UUID", UUID)
-	defer os.Unsetenv("PACKER_RUN_UUID")
+	t.Setenv("PACKER_RUN_UUID", UUID)
 
 	args := []string{
 		filepath.Join(testFixture("hcl"), "force.pkr.hcl"),
@@ -832,7 +836,7 @@ func TestHCL2PostProcessorForceFlag(t *testing.T) {
 
 	// Second build should override previous manifest
 	UUID, _ = uuid.GenerateUUID()
-	os.Setenv("PACKER_RUN_UUID", UUID)
+	t.Setenv("PACKER_RUN_UUID", UUID)
 
 	args = []string{
 		"-force",
@@ -867,60 +871,70 @@ func TestHCL2PostProcessorForceFlag(t *testing.T) {
 
 func TestBuildCommand_HCLOnlyExceptOptions(t *testing.T) {
 	tests := []struct {
-		args       []string
-		present    []string
-		notPresent []string
+		args         []string
+		present      []string
+		notPresent   []string
+		expectReturn int
 	}{
 		{
 			[]string{"-only=chocolate"},
 			[]string{},
 			[]string{"chocolate.txt", "vanilla.txt", "cherry.txt"},
+			1,
 		},
 		{
 			[]string{"-only=*chocolate*"},
 			[]string{"chocolate.txt"},
 			[]string{"vanilla.txt", "cherry.txt"},
+			0,
 		},
 		{
 			[]string{"-except=*chocolate*"},
 			[]string{"vanilla.txt", "cherry.txt"},
 			[]string{"chocolate.txt"},
+			0,
 		},
 		{
 			[]string{"-except=*ch*"},
 			[]string{"vanilla.txt"},
 			[]string{"chocolate.txt", "cherry.txt"},
+			0,
 		},
 		{
 			[]string{"-only=*chocolate*", "-only=*vanilla*"},
 			[]string{"chocolate.txt", "vanilla.txt"},
 			[]string{"cherry.txt"},
+			0,
 		},
 		{
 			[]string{"-except=*chocolate*", "-except=*vanilla*"},
 			[]string{"cherry.txt"},
 			[]string{"chocolate.txt", "vanilla.txt"},
+			0,
 		},
 		{
 			[]string{"-only=my_build.file.chocolate"},
 			[]string{"chocolate.txt"},
 			[]string{"vanilla.txt", "cherry.txt"},
+			0,
 		},
 		{
 			[]string{"-except=my_build.file.chocolate"},
 			[]string{"vanilla.txt", "cherry.txt"},
 			[]string{"chocolate.txt"},
+			0,
 		},
 		{
 			[]string{"-only=file.cherry"},
 			[]string{"cherry.txt"},
 			[]string{"vanilla.txt", "chocolate.txt"},
+			0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s", tt.args), func(t *testing.T) {
-			testHCLOnlyExceptFlags(t, tt.args, tt.present, tt.notPresent)
+			testHCLOnlyExceptFlags(t, tt.args, tt.present, tt.notPresent, tt.expectReturn)
 		})
 	}
 }
@@ -1097,6 +1111,266 @@ func TestBuildCommand_ParseArgs(t *testing.T) {
 			}
 			if gotExitCode != tt.wantExitCode {
 				t.Fatalf("BuildCommand.ParseArgs() gotExitCode = %v, want %v", gotExitCode, tt.wantExitCode)
+			}
+		})
+	}
+}
+
+// TestProvisionerOnlyExcept checks that only/except blocks in provisioners/post-processors behave as expected
+func TestProvisionerAndPostProcessorOnlyExcept(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         []string
+		expectedCode int
+		outputCheck  func(string, string) error
+	}{
+		{
+			"json - only named build",
+			[]string{
+				"-only", "packer",
+				testFixture("provisioners", "provisioner-only-except.json"),
+			},
+			0,
+			func(out, _ string) error {
+				if !strings.Contains(out, "packer provisioner packer and null") {
+					return fmt.Errorf("missing expected provisioner output")
+				}
+
+				if !strings.Contains(out, "packer post-processor packer and null") {
+					return fmt.Errorf("missing expected post-processor output")
+				}
+
+				if strings.Contains(out, "null post-processor") || strings.Contains(out, "null provisioner") {
+					return fmt.Errorf("found traces of unnamed provisioner/post-processor, should not")
+				}
+
+				return nil
+			},
+		},
+		{
+			"json - only unnamed build",
+			[]string{
+				"-only", "null",
+				testFixture("provisioners", "provisioner-only-except.json"),
+			},
+			0,
+			func(out, _ string) error {
+				if !strings.Contains(out, "null provisioner null and null") {
+					return fmt.Errorf("missing expected provisioner output")
+				}
+
+				if !strings.Contains(out, "null post-processor null and null") {
+					return fmt.Errorf("missing expected post-processor output")
+				}
+
+				if strings.Contains(out, "packer post-processor") || strings.Contains(out, "packer provisioner") {
+					return fmt.Errorf("found traces of named provisioner/post-processor, should not")
+				}
+
+				return nil
+			},
+		},
+		{
+			"hcl - only one source build",
+			[]string{
+				"-only", "null.packer",
+				testFixture("provisioners", "provisioner-only-except.pkr.hcl"),
+			},
+			0,
+			func(out, _ string) error {
+				if !strings.Contains(out, "packer provisioner packer and null") {
+					return fmt.Errorf("missing expected provisioner output")
+				}
+
+				if !strings.Contains(out, "packer post-processor packer and null") {
+					return fmt.Errorf("missing expected post-processor output")
+				}
+
+				if strings.Contains(out, "other post-processor") || strings.Contains(out, "other provisioner") {
+					return fmt.Errorf("found traces of other provisioner/post-processor, should not")
+				}
+
+				return nil
+			},
+		},
+		{
+			"hcl - only other build",
+			[]string{
+				"-only", "null.other",
+				testFixture("provisioners", "provisioner-only-except.pkr.hcl"),
+			},
+			0,
+			func(out, _ string) error {
+				if !strings.Contains(out, "other provisioner other and null") {
+					return fmt.Errorf("missing expected provisioner output")
+				}
+
+				if !strings.Contains(out, "other post-processor other and null") {
+					return fmt.Errorf("missing expected post-processor output")
+				}
+
+				if strings.Contains(out, "packer post-processor") || strings.Contains(out, "packer provisioner") {
+					return fmt.Errorf("found traces of \"packer\" source provisioner/post-processor, should not")
+				}
+
+				return nil
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &BuildCommand{
+				Meta: TestMetaFile(t),
+			}
+
+			exitCode := c.Run(tt.args)
+			if exitCode != tt.expectedCode {
+				t.Errorf("process exit code mismatch: expected %d, got %d",
+					tt.expectedCode,
+					exitCode)
+			}
+
+			out, stderr := GetStdoutAndErrFromTestMeta(t, c.Meta)
+			err := tt.outputCheck(out, stderr)
+			if err != nil {
+				if len(out) != 0 {
+					t.Logf("command stdout: %q", out)
+				}
+
+				if len(stderr) != 0 {
+					t.Logf("command stderr: %q", stderr)
+				}
+				t.Error(err.Error())
+			}
+		})
+	}
+}
+
+// TestBuildCmd aims to test the build command, with output validation
+func TestBuildCmd(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         []string
+		expectedCode int
+		outputCheck  func(string, string) error
+	}{
+		{
+			name: "hcl - no build block error",
+			args: []string{
+				testFixture("hcl", "no_build.pkr.hcl"),
+			},
+			expectedCode: 1,
+			outputCheck: func(_, err string) error {
+				if !strings.Contains(err, "Error: Missing build block") {
+					return fmt.Errorf("expected 'Error: Missing build block' in output, did not find it")
+				}
+
+				nbErrs := strings.Count(err, "Error: ")
+				if nbErrs != 1 {
+					return fmt.Errorf(
+						"error: too many errors in stdout for build block, expected 1, got %d",
+						nbErrs)
+				}
+
+				return nil
+			},
+		},
+		{
+			name: "hcl - undefined var set in pkrvars",
+			args: []string{
+				testFixture("hcl", "variables", "ref_non_existing"),
+			},
+			expectedCode: 0,
+			outputCheck: func(out, err string) error {
+				nbWarns := strings.Count(out, "Warning: ")
+				if nbWarns != 0 {
+					return fmt.Errorf(
+						"error: too many warnings in build output, expected 0, got %d",
+						nbWarns)
+				}
+
+				nbErrs := strings.Count(err, "Error: ")
+				if nbErrs != 0 {
+					return fmt.Errorf("error: expected build to succeed without errors, got %d",
+						nbErrs)
+				}
+				return nil
+			},
+		},
+		{
+			name: "hcl - build block without source",
+			args: []string{
+				testFixture("hcl", "build_no_source.pkr.hcl"),
+			},
+			expectedCode: 1,
+			outputCheck: func(_, err string) error {
+				if !strings.Contains(err, "Error: missing source reference") {
+					return fmt.Errorf("expected 'Error: missing source reference' in output, did not find it")
+				}
+
+				nbErrs := strings.Count(err, "Error: ")
+				if nbErrs != 1 {
+					return fmt.Errorf(
+						"error: too many errors in stderr for build, expected 1, got %d",
+						nbErrs)
+				}
+
+				logRegex := regexp.MustCompile("on.*build_no_source.pkr.hcl line 1")
+				if !logRegex.MatchString(err) {
+					return fmt.Errorf("error: missing context for error message")
+				}
+
+				return nil
+			},
+		},
+		{
+			name: "hcl - exclude post-processor, expect no warning",
+			args: []string{
+				"-except", "manifest",
+				testFixture("hcl", "test_except_manifest.pkr.hcl"),
+			},
+			expectedCode: 0,
+			outputCheck: func(out, err string) error {
+				for _, stream := range []string{out, err} {
+					if strings.Contains(stream, "Warning: an 'except' option was passed, but did not match any build") {
+						return fmt.Errorf("Unexpected warning for build no match with except")
+					}
+
+					if strings.Contains(stream, "Running post-processor:") {
+						return fmt.Errorf("Should not run post-processors, but found one")
+					}
+				}
+
+				return nil
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &BuildCommand{
+				Meta: TestMetaFile(t),
+			}
+
+			exitCode := c.Run(tt.args)
+			if exitCode != tt.expectedCode {
+				t.Errorf("process exit code mismatch: expected %d, got %d",
+					tt.expectedCode,
+					exitCode)
+			}
+
+			out, stderr := GetStdoutAndErrFromTestMeta(t, c.Meta)
+			err := tt.outputCheck(out, stderr)
+			if err != nil {
+				if len(out) != 0 {
+					t.Logf("command stdout: %q", out)
+				}
+
+				if len(stderr) != 0 {
+					t.Logf("command stderr: %q", stderr)
+				}
+				t.Error(err.Error())
 			}
 		})
 	}
