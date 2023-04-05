@@ -161,8 +161,8 @@
   {
     "title": "Linode",
     "path": "linode",
-    "repo": "hashicorp/packer-plugin-linode",
-    "pluginTier": "community",
+    "repo": "linode/packer-plugin-linode",
+    "pluginTier": "verified",
     "version": "latest",
     "isHcpPackerReady": true
   },
@@ -229,7 +229,8 @@
     "path": "outscale",
     "repo": "outscale/packer-plugin-outscale",
     "version": "latest",
-    "pluginTier": "verified"
+    "pluginTier": "verified",
+    "isHcpPackerReady": true
   },
   {
     "title": "Parallels",
@@ -311,7 +312,7 @@
   {
     "title": "UCloud",
     "path": "ucloud",
-    "repo": "hashicorp/packer-plugin-ucloud",
+    "repo": "ucloud/packer-plugin-ucloud",
     "version": "latest",
     "pluginTier": "community"
   },
